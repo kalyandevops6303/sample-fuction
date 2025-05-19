@@ -1,4 +1,4 @@
-name: trumio-meeting-analysis
+name: sample-function-deployment
 on:
   workflow_dispatch:
   

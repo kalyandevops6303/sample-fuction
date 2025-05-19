@@ -19,7 +19,7 @@ jobs:
 
       - name: Function-name
         run: |
-          echo "functionapp=tr-fn-fnapp" >> $GITHUB_ENV
+          echo "functionapp=flex-fn-app2" >> $GITHUB_ENV
  
       # - name: Install Azure cli
       #   run: |

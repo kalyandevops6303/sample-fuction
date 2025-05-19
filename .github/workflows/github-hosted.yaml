@@ -1,0 +1,74 @@
+
+name: sample-function-deployment-github-hosted
+on:
+  workflow_dispatch:
+  
+jobs:
+  functionapp_deploy:
+    # runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, self-hosted-runner]
+    #runs-on: ${{ vars.RUNNER }}
+    permissions:
+      id-token: write
+      contents: write
+    
+    steps:
+    ##Git checkout
+      - uses: actions/checkout@v4
+        with:
+          repository: 'kalyandevops6303/python-function'
+
+      - name: Function-name
+        run: |
+          echo "functionapp=tr-fn-fnapp" >> $GITHUB_ENV
+ 
+      # - name: Install Azure cli
+      #   run: |
+      #     sudo apt-get install ca-certificates curl apt-transport-https lsb-release gnupg
+      #     curl -sL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor | sudo tee /etc/apt/trusted.gpg.d/microsoft.gpg > /dev/null
+      #     AZ_REPO=$(lsb_release -cs)
+      #     echo "deb [arch=amd64] https://packages.microsoft.com/repos/azure-cli/ $AZ_REPO main" | sudo tee /etc/apt/sources.list.d/azure-cli.list
+      #     sudo apt-get update
+      #     sudo apt-get install azure-cli
+ 
+      - name: Set Azure environment
+        id: azure
+        run: |
+              echo "azure_clientid=${{ secrets.ARM_CLIENT_ID }}" >> $GITHUB_ENV
+              echo "azure_tenantid=${{ secrets.ARM_TENANT_ID }}" >> $GITHUB_ENV
+              echo "azure_subscriptionid=${{ secrets.ARM_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
+              echo "azure_clientsecret=${{ secrets.ARM_CLIENT_SECRET }}" >> $GITHUB_ENV
+        shell: bash
+ 
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          creds: '{"clientId":"${{ env.azure_clientid }}","clientSecret":"${{ env.azure_clientsecret }}","subscriptionId":"${{ env.azure_subscriptionid }}","tenantId":"${{ env.azure_tenantid }}"}'
+ 
+      - name: Setup Python Environment
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+ 
+      - name: 'Resolve Project Dependencies Using Pip'
+        shell: bash
+        run: |
+          pushd './.'
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt --target=".python_packages/lib/site-packages"
+          popd
+ 
+      - name: 'Run Azure Functions Action'
+        uses: Azure/functions-action@v1
+        with:
+          app-name: ${{ env.functionapp }}
+          package: .
+          #publish-profile: ${{ secrets.AZURE_FUNCTIONAPP_PUBLISH_PROFILE_DEV }}
+          scm-do-build-during-deployment: true
+          enable-oryx-build: true
+         
+      # Azure logout
+      - name: logout
+        run: |
+          az logout
+        if: always()

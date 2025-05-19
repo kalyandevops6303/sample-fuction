@@ -5,8 +5,8 @@ on:
   
 jobs:
   functionapp_deploy:
-    # runs-on: ubuntu-latest
-    runs-on: [self-hosted, linux, x64, self-hosted-runner]
+    runs-on: ubuntu-latest
+    # runs-on: [self-hosted, linux, x64, self-hosted-runner]
     #runs-on: ${{ vars.RUNNER }}
     permissions:
       id-token: write

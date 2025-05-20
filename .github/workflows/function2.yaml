@@ -1,4 +1,4 @@
-name: sample-function-deployment
+name: sample-function-deployment2
 on:
   workflow_dispatch:
   

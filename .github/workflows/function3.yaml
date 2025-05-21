@@ -37,12 +37,13 @@ jobs:
       with:
         python-version: '3.9'
 
-    - name: Install Dependencies
+    - name: 'Resolve Project Dependencies Using Pip'
+      shell: bash
       run: |
+        pushd './.'
+        python -m pip install --upgrade pip
         pip install -r requirements.txt --target=".python_packages/lib/site-packages"
-
-    - name: Create deployment ZIP
-      run: zip -r $ZIP_NAME .
+        popd
 
     - name: Upload ZIP to Blob Storage
       run: |

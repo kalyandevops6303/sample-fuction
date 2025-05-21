@@ -1,0 +1,73 @@
+name: sample-function-deployment
+on:
+  workflow_dispatch:
+
+jobs:
+  functionapp_deploy:
+    runs-on: [self-hosted, linux, x64, self-hosted-runner]
+    permissions:
+      id-token: write
+      contents: read
+
+    env:
+      FUNCTION_APP: tr-fn-fnapp
+      STORAGE_ACCOUNT: ktrfnrga5f3
+      CONTAINER_NAME: app-package-tr-fn-fnapp-ea2efa3
+      ZIP_NAME: functionapp.zip
+      RESOURCE_GROUP: k-tr-fn-rg
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set Azure environment
+      run: |
+        echo "azure_clientid=${{ secrets.ARM_CLIENT_ID }}" >> $GITHUB_ENV
+        echo "azure_tenantid=${{ secrets.ARM_TENANT_ID }}" >> $GITHUB_ENV
+        echo "azure_subscriptionid=${{ secrets.ARM_SUBSCRIPTION_ID }}" >> $GITHUB_ENV
+        echo "azure_clientsecret=${{ secrets.ARM_CLIENT_SECRET }}" >> $GITHUB_ENV
+
+    - name: Login to Azure
+      uses: azure/login@v2
+      with:
+        creds: '{"clientId":"${{ env.azure_clientid }}","clientSecret":"${{ env.azure_clientsecret }}","subscriptionId":"${{ env.azure_subscriptionid }}","tenantId":"${{ env.azure_tenantid }}"}'
+
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.9'
+
+    - name: Install Dependencies
+      run: |
+        pip install -r requirements.txt --target=".python_packages/lib/site-packages"
+
+    - name: Create deployment ZIP
+      run: zip -r $ZIP_NAME .
+
+    - name: Upload ZIP to Blob Storage
+      run: |
+        az storage blob upload \
+          --account-name $STORAGE_ACCOUNT \
+          --container-name $CONTAINER_NAME \
+          --name $ZIP_NAME \
+          --file $ZIP_NAME \
+          --auth-mode login \
+          --overwrite
+
+    - name: Set WEBSITE_RUN_FROM_PACKAGE App Setting
+      run: |
+        ZIP_URL="https://$STORAGE_ACCOUNT.blob.core.windows.net/$CONTAINER_NAME/$ZIP_NAME"
+        az functionapp config appsettings set \
+          --name $FUNCTION_APP \
+          --resource-group $RESOURCE_GROUP \
+          --settings WEBSITE_RUN_FROM_PACKAGE="$ZIP_URL"
+
+    - name: Restart Function App
+      run: |
+        az functionapp restart \
+          --name $FUNCTION_APP \
+          --resource-group $RESOURCE_GROUP
+
+    - name: Azure logout
+      if: always()
+      run: az logout

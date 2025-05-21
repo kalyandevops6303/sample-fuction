@@ -37,11 +37,13 @@ jobs:
       with:
         python-version: '3.9'
 
-    - name: 'Resolve Project Dependencies Using Pip'
-      shell: bash
+    - name: Install build dependencies (numpy for scikit-image)
       run: |
-        pushd './.'
-        python -m pip install --upgrade pip
+        pip install --upgrade pip
+        pip install numpy
+    
+    - name: Install Python requirements
+      run: |
         pip install -r requirements.txt --target=".python_packages/lib/site-packages"
         popd
 
